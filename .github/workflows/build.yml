@@ -1,0 +1,113 @@
+# Build and Release lux-gpu (static core library)
+name: Build
+
+on:
+  push:
+    branches: [main, release/*]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+env:
+  CMAKE_BUILD_TYPE: Release
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            arch: x86_64
+            artifact: linux-x86_64
+          - os: macos-14
+            arch: arm64
+            artifact: macos-arm64
+          - os: macos-13
+            arch: x86_64
+            artifact: macos-x86_64
+          - os: windows-2022
+            arch: x86_64
+            artifact: windows-x86_64
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake ninja
+
+      - name: Configure (Unix)
+        if: runner.os != 'Windows'
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Package
+        run: |
+          mkdir -p dist/lib dist/include
+          cp build/liblux_gpu_core* dist/lib/ 2>/dev/null || cp build/Release/lux_gpu_core* dist/lib/ 2>/dev/null || true
+          cp -r include/* dist/include/
+          tar -czvf lux-gpu-${{ matrix.artifact }}.tar.gz -C dist .
+        shell: bash
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lux-gpu-${{ matrix.artifact }}
+          path: lux-gpu-${{ matrix.artifact }}.tar.gz
+
+  release:
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release
+        run: |
+          mkdir release
+          find artifacts -name "*.tar.gz" -exec cp {} release/ \;
+          cd release && sha256sum * > SHA256SUMS
+
+      - name: Generate release notes
+        run: |
+          cat > RELEASE_NOTES.md << 'EOF'
+          # lux-gpu ${{ github.ref_name }}
+
+          Static GPU core library for lux-accel.
+
+          ## Downloads
+
+          | Platform | Architecture | File |
+          |----------|--------------|------|
+          | Linux | x86_64 | `lux-gpu-linux-x86_64.tar.gz` |
+          | macOS | arm64 | `lux-gpu-macos-arm64.tar.gz` |
+          | macOS | x86_64 | `lux-gpu-macos-x86_64.tar.gz` |
+          | Windows | x86_64 | `lux-gpu-windows-x86_64.tar.gz` |
+
+          ## Usage
+
+          This is a static library intended to be linked into lux-accel.
+          For most users, download lux-accel instead.
+          EOF
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: release/*
+          body_path: RELEASE_NOTES.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
