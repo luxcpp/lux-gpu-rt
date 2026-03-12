@@ -2,9 +2,14 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 #include <lux/gpu/gpu.hpp>
-#include <dlfcn.h>
 #include <mutex>
 #include <unordered_map>
+
+#ifdef _WIN32
+#  include <windows.h>
+#else
+#  include <dlfcn.h>
+#endif
 
 namespace lux::gpu {
 
@@ -32,14 +37,29 @@ Context::Context() : impl_(std::make_unique<Impl>()) {}
 Context::~Context() = default;
 
 Status Context::loadBackend(std::string_view path) {
+#ifdef _WIN32
+    HMODULE handle = LoadLibraryA(std::string(path).c_str());
+    if (!handle) return Status::Error(StatusCode::BackendNotAvailable, "LoadLibrary failed");
+
+    auto fn = reinterpret_cast<BackendCreateFn>(GetProcAddress(handle, "lux_gpu_create_backend"));
+    if (!fn) { FreeLibrary(handle); return Status::Error(StatusCode::BackendNotAvailable, "Missing symbol"); }
+#else
     void* handle = dlopen(std::string(path).c_str(), RTLD_NOW | RTLD_LOCAL);
     if (!handle) return Status::Error(StatusCode::BackendNotAvailable, dlerror());
 
     auto fn = reinterpret_cast<BackendCreateFn>(dlsym(handle, "lux_gpu_create_backend"));
     if (!fn) { dlclose(handle); return Status::Error(StatusCode::BackendNotAvailable, "Missing symbol"); }
+#endif
 
     auto backend = fn();
-    if (!backend) { dlclose(handle); return Status::Error(StatusCode::BackendNotAvailable, "Create failed"); }
+    if (!backend) {
+#ifdef _WIN32
+        FreeLibrary(handle);
+#else
+        dlclose(handle);
+#endif
+        return Status::Error(StatusCode::BackendNotAvailable, "Create failed");
+    }
 
     return loadBackend(std::move(backend));
 }
