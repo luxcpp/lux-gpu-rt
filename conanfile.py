@@ -2,8 +2,8 @@ from conan import ConanFile
 from conan.tools.cmake import CMake, cmake_layout
 
 
-class LuxGpu(ConanFile):
-    name = "lux-gpu"
+class LuxGpuRt(ConanFile):
+    name = "lux-gpu-rt"
     package_type = "static-library"  # Always static - linked into lux-accel
     settings = "os", "arch", "compiler", "build_type"
     options = {"fPIC": [True, False]}
@@ -29,9 +29,9 @@ class LuxGpu(ConanFile):
 
     def package_info(self):
         self.cpp_info.set_property("cmake_file_name", self.name)
-        self.cpp_info.set_property("cmake_target_name", "lux::gpu_core")
+        self.cpp_info.set_property("cmake_target_name", "lux::gpu-rt")
         self.cpp_info.set_property("cmake_find_mode", "config")
-        self.cpp_info.libs = ["lux_gpu_core"]
+        self.cpp_info.libs = ["lux_gpu_rt"]
 
         # Platform libs for dlopen
         if self.settings.os in ["Linux", "FreeBSD"]:
