@@ -1,0 +1,14 @@
+@PACKAGE_INIT@
+include("${CMAKE_CURRENT_LIST_DIR}/@PROJECT_NAME@Targets.cmake")
+
+# Stable public alias for consumers: `lux::gpu-rt`.
+# `install(EXPORT)` exports the underlying target as `lux::lux_gpu_rt`
+# (namespace + target name). ALIAS targets are not exported, so we
+# recreate the in-source alias here so downstream `find_package` users
+# can link against the same canonical name documented in the README.
+if(TARGET lux::lux_gpu_rt AND NOT TARGET lux::gpu-rt)
+  set_target_properties(lux::lux_gpu_rt PROPERTIES IMPORTED_GLOBAL TRUE)
+  add_library(lux::gpu-rt ALIAS lux::lux_gpu_rt)
+endif()
+
+check_required_components("@PROJECT_NAME@")

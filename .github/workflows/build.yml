@@ -1,4 +1,4 @@
-# Build and Release lux-gpu (static core library)
+# Build and Release lux-gpu-rt (static core library, C++23 abstract GPU runtime)
 name: Build
 
 on:
@@ -55,15 +55,15 @@ jobs:
       - name: Package
         run: |
           mkdir -p dist/lib dist/include
-          cp build/liblux_gpu_core* dist/lib/ 2>/dev/null || cp build/Release/lux_gpu_core* dist/lib/ 2>/dev/null || true
+          cp build/liblux_gpu_rt* dist/lib/ 2>/dev/null || cp build/Release/lux_gpu_rt* dist/lib/ 2>/dev/null || true
           cp -r include/* dist/include/
-          tar -czvf lux-gpu-${{ matrix.artifact }}.tar.gz -C dist .
+          tar -czvf lux-gpu-rt-${{ matrix.artifact }}.tar.gz -C dist .
         shell: bash
 
       - uses: actions/upload-artifact@v4
         with:
-          name: lux-gpu-${{ matrix.artifact }}
-          path: lux-gpu-${{ matrix.artifact }}.tar.gz
+          name: lux-gpu-rt-${{ matrix.artifact }}
+          path: lux-gpu-rt-${{ matrix.artifact }}.tar.gz
 
   release:
     needs: [build]
@@ -86,18 +86,18 @@ jobs:
       - name: Generate release notes
         run: |
           cat > RELEASE_NOTES.md << 'EOF'
-          # lux-gpu ${{ github.ref_name }}
+          # lux-gpu-rt ${{ github.ref_name }}
 
-          Static GPU core library for lux-accel.
+          Static GPU core library (C++23 abstract runtime) for lux-accel.
 
           ## Downloads
 
           | Platform | Architecture | File |
           |----------|--------------|------|
-          | Linux | x86_64 | `lux-gpu-linux-x86_64.tar.gz` |
-          | macOS | arm64 | `lux-gpu-macos-arm64.tar.gz` |
-          | macOS | x86_64 | `lux-gpu-macos-x86_64.tar.gz` |
-          | Windows | x86_64 | `lux-gpu-windows-x86_64.tar.gz` |
+          | Linux | x86_64 | `lux-gpu-rt-linux-x86_64.tar.gz` |
+          | macOS | arm64 | `lux-gpu-rt-macos-arm64.tar.gz` |
+          | macOS | x86_64 | `lux-gpu-rt-macos-x86_64.tar.gz` |
+          | Windows | x86_64 | `lux-gpu-rt-windows-x86_64.tar.gz` |
 
           ## Usage
 
