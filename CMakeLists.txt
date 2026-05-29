@@ -5,9 +5,9 @@ project(lux-gpu VERSION 0.1.2 LANGUAGES CXX)
 # This is linked into lux-accel, not used directly by consumers.
 #
 # Header namespace `lux::gpu` is stable.
-# CMake target name `lux::gpu_core` (alias of lux_gpu_core).
+# CMake target name `lux::gpu_rt` (alias of lux_gpu_rt).
 
-add_library(lux_gpu_core STATIC
+add_library(lux_gpu_rt STATIC
   src/context.cpp
   src/device.cpp
   src/buffer.cpp
@@ -16,18 +16,18 @@ add_library(lux_gpu_core STATIC
 )
 
 # Alias for internal use
-add_library(lux::gpu_core ALIAS lux_gpu_core)
+add_library(lux::gpu_rt ALIAS lux_gpu_rt)
 
-target_compile_features(lux_gpu_core PUBLIC cxx_std_23)
+target_compile_features(lux_gpu_rt PUBLIC cxx_std_23)
 
-target_include_directories(lux_gpu_core
+target_include_directories(lux_gpu_rt
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>
 )
 
 # PIC required since this will be linked into shared library
-set_target_properties(lux_gpu_core PROPERTIES
+set_target_properties(lux_gpu_rt PROPERTIES
   POSITION_INDEPENDENT_CODE ON
   CXX_VISIBILITY_PRESET hidden
   VISIBILITY_INLINES_HIDDEN ON
@@ -35,14 +35,14 @@ set_target_properties(lux_gpu_core PROPERTIES
 
 # Platform-specific libraries for dlopen
 if(UNIX AND NOT APPLE)
-  target_link_libraries(lux_gpu_core PRIVATE dl)
+  target_link_libraries(lux_gpu_rt PRIVATE dl)
 endif()
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
 # Install static library (for C++ consumers who want to build their own accel)
-install(TARGETS lux_gpu_core
+install(TARGETS lux_gpu_rt
   EXPORT lux-gpu-targets
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
